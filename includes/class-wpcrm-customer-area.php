@@ -155,7 +155,11 @@ class Wpcrm_Customer_Area {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
     //TODO check if this option is enabled in the settings
     //assign a user account to all contacts
-    $this->loader->add_action( 'save_post_wpcrm-contact', $plugin_admin,'create_user_for_contact', 10, 2 );
+    $this->loader->add_filter( 'wp_insert_post_data', $plugin_admin,'remove_user_from_private_page', 30, 2 );
+    $this->loader->add_action( 'save_post_wpcrm-contact', $plugin_admin,'create_user_for_contact', 30, 2 );
+    //check wpcrm project creation
+    $this->loader->add_action( 'save_post_wpcrm-project', $plugin_admin,'check_org_for_project', 30, 2 );
+
     //add the user to the contact table
     $this->loader->add_filter('manage_wpcrm-contact_posts_columns', $plugin_admin,'wpcrm_contact_column' );
     $this->loader->add_action('manage_wpcrm-contact_posts_custom_column', $plugin_admin,'wpcrm_contact_column_value',10, 2);
@@ -165,6 +169,21 @@ class Wpcrm_Customer_Area {
     //$this->loader->add_action('shutdown', $plugin_admin, 'debug_hooks');
     $this->loader->add_filter('admin_notices',  $plugin_admin,'contact_email_validation');
     $this->loader->add_filter('admin_notices',  $plugin_admin,'wpcrm_contact_no_company');
+    $this->loader->add_filter('admin_notices',  $plugin_admin,'wpcrm_project_no_company');
+    //link projects to private files
+    $this->loader->add_action( 'add_meta_boxes', $plugin_admin,'register_private_file_meta_boxes');
+    $this->loader->add_action( 'save_post_cuar_private_file', $plugin_admin, 'save_private_file_project',20,1 );
+    $this->loader->add_filter('default_hidden_meta_boxes', $plugin_admin,'hide_private_file_user_meta_box',20,2);
+    $this->loader->add_action('admin_init', $plugin_admin,'remove_private_file_editor');
+    //customer navigation menu metabox
+    $this->loader->add_action('admin_init', $plugin_admin, 'add_menu_meta_box');
+    $this->loader->add_filter('wp_setup_nav_menu_item',  $plugin_admin, 'setup_item', 10, 1);
+    $this->loader->add_action('wp_ajax_ajax_cuar_nav', $plugin_admin, 'ajax_cuar_nav');
+
+    //modify WP CRM Project post type
+    $this->loader->add_action('init', $plugin_admin, 'modify_wpcrm_post_type' ,30);
+
+
 	}
 
 	/**
@@ -180,6 +199,11 @@ class Wpcrm_Customer_Area {
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+
+    //loading private pages in frontend menus
+    $this->loader->add_filter('walker_nav_menu_start_el', $plugin_public, 'start_el', 10, 2);
+    $this->loader->add_filter('after_setup_theme', $plugin_public, 'remove_cuar_styling');
+
 
 	}
 

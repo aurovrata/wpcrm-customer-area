@@ -29,7 +29,9 @@
 if ( ! defined( 'WPINC' ) ) {
 	die;
 }
-
+if(WP_DEBUG){
+  error_reporting(E_ALL);
+}
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-wpcrm-customer-area-activator.php
