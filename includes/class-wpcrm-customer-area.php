@@ -158,7 +158,7 @@ class Wpcrm_Customer_Area {
     $this->loader->add_filter( 'wp_insert_post_data', $plugin_admin,'remove_user_from_private_page', 30, 2 );
     $this->loader->add_action( 'save_post_wpcrm-contact', $plugin_admin,'create_user_for_contact', 30, 2 );
     //check wpcrm project creation
-    $this->loader->add_action( 'save_post_wpcrm-project', $plugin_admin,'check_org_for_project', 30, 2 );
+    $this->loader->add_action( 'save_post_wpcrm-project', $plugin_admin,'validate_project', 30, 2 );
 
     //add the user to the contact table
     $this->loader->add_filter('manage_wpcrm-contact_posts_columns', $plugin_admin,'wpcrm_contact_column' );
@@ -203,7 +203,9 @@ class Wpcrm_Customer_Area {
     //loading private pages in frontend menus
     $this->loader->add_filter('walker_nav_menu_start_el', $plugin_public, 'start_el', 10, 2);
     $this->loader->add_filter('after_setup_theme', $plugin_public, 'remove_cuar_styling');
-
+    //enable plugin folder template for customer area plugin
+    $this->loader->add_filter('cuar/ui/template-directories', $plugin_public, 'customer_area_template_dir');
+    $this->loader->add_action( 'init', $plugin_public, 'remove_page_comment' ,100);
 
 	}
 

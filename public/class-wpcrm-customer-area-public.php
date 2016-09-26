@@ -68,7 +68,8 @@ class Wpcrm_Customer_Area_Public {
     // tell WordPress to load the Smoothness theme from Google CDN
     $protocol = is_ssl() ? 'https' : 'http';
     $url="$protocol://ajax.googleapis.com/ajax/libs/jqueryui/{$ui->ver}/themes/smoothness/jquery-ui.min.css";
-    wp_enqueue_style('jquery-ui-smoothness', $url, false, null);
+    //wp_enqueue_style( string $handle, string $src, array $deps, string|bool|null $ver, string $media )
+    wp_enqueue_style('jquery-ui-smoothness', $url, array() ,$ui->ver , 'all');
 
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wpcrm-customer-area-public.css', array(), $this->version, 'all' );
 
@@ -93,7 +94,7 @@ class Wpcrm_Customer_Area_Public {
 		 * class.
 		 */
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-customer-area-public.js', array( 'jquery','jquery-ui-tabs' ), $this->version, false );
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-customer-area-public.js', array( 'jquery','jquery-ui-tabs','jquery-ui-accordion' ), $this->version, false );
 
 	}
   /**
@@ -149,14 +150,33 @@ class Wpcrm_Customer_Area_Public {
       return $item_output;
   }
   /**
-   *
-   *
+   * Funciton to disable the Customer Area css styling
+   * This functionality can be switched off by return false on the following filter 'wpcrm_cuar_disable_stylesheet'
    * @since 1.0.0
-   * @param      string    $p1     .
-   * @return     string    $p2     .
   **/
   public function remove_cuar_styling(){
-    add_theme_support( 'customer-area.stylesheet' );
+    $disable = apply_filters('wpcrm_cuar_disable_stylesheet',true);
+    if($disable) add_theme_support( 'customer-area.stylesheet' );
+  }
+  /**
+   * Fundtion to add Cusomter Area template path
+   * this function hooks the 'cuar/ui/template-directories'
+   * @since 1.0.0
+   * @param      Array    $possible_paths    an array of template paths .
+   * @return     Array    an array with the additional path to look for template     .
+  **/
+  public function customer_area_template_dir($possible_paths){
+    //insert the plugin folder in the 2nd but last position, this way themese can still override
+    array_splice($possible_paths, -1, 0, untrailingslashit(WP_CONTENT_DIR) . '/plugins/' . $this->plugin_name . '/public/partials/customer-area');
+
+    return $possible_paths;
   }
 
+
+  public function remove_page_comment() {
+      //remove_post_type_support( 'page', 'comments' );
+      remove_post_type_support( 'cuar_private_page', 'comments' );
+      remove_post_type_support( 'cuar_private_file', 'comments' );
+
+  }
 }

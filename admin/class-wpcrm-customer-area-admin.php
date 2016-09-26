@@ -59,7 +59,7 @@ class Wpcrm_Customer_Area_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_styles() {
+	public function enqueue_styles($hook) {
 
 		/**
 		 * This function is provided for demonstration purposes only.
@@ -72,8 +72,10 @@ class Wpcrm_Customer_Area_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-
+    
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wpcrm-customer-area-admin.css', array(), $this->version, 'all' );
+
+
 
 	}
 
@@ -272,13 +274,13 @@ class Wpcrm_Customer_Area_Admin {
    * @param      int    $ID     the id of the post being saved.
    * @return     WP_Object    $post     the post being saved.
    */
-  public function check_org_for_project($ID, $post){
+  public function validate_project($ID, $post){
 
     if('publish' == $post->post_status){
-      // Check if the contact is attached to an oganisation
-      if(isset($_POST['_wpcrm_contact-attach-to-organization']) && !empty($_POST['_wpcrm_contact-attach-to-organization']) ){
+      // Check if the project is attached to an oganisation
+      if(isset($_POST['_wpcrm_project-attach-to-organization']) && !empty($_POST['_wpcrm_project-attach-to-organization']) ){
         //let's make sure we have a customer area page created for this organisation
-        $org_id= $_POST['_wpcrm_contact-attach-to-organization'];
+        $org_id = $_POST['_wpcrm_contact-attach-to-organization'];
         $args = array(
             'meta_key' => 'wpcrm_organisation_id',
             'meta_value' => $org_id,
@@ -697,9 +699,9 @@ class Wpcrm_Customer_Area_Admin {
     //projects
     //$wp_post_types['wpcrm-project']->public = false;
     //$wp_post_types['wpcrm-project']->show_ui = true;
-    $wp_post_types['wpcrm-project']->exclude_from_search = false;
+    $wp_post_types['wpcrm-project']->exclude_from_search = true;
     $wp_post_types['wpcrm-project']->publicly_queryable = true;
-    //$wp_post_types['wpcrm-project']->show_in_nav_menus = true;
+    $wp_post_types['wpcrm-project']->query_var = false;
     //$wp_post_types['wpcrm-project']->show_in_menu = true;
     //$wp_post_types['wpcrm-project']->show_in_admin_bar = false;
     //tasks
@@ -707,7 +709,7 @@ class Wpcrm_Customer_Area_Admin {
     //$wp_post_types['wpcrm-task']->show_ui = true;
     $wp_post_types['wpcrm-task']->exclude_from_search = false;
     $wp_post_types['wpcrm-task']->publicly_queryable = true;
-    //$wp_post_types['wpcrm-task']->show_in_nav_menus = true;
+    $wp_post_types['wpcrm-task']->query_var = false;
     //$wp_post_types['wpcrm-task']->show_in_menu = true;
     //$wp_post_types['wpcrm-task']->show_in_admin_bar = false;
   }
