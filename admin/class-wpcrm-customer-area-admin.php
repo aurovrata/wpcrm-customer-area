@@ -87,11 +87,24 @@ class Wpcrm_Customer_Area_Admin {
 	public function enqueue_scripts($hook) {
 
     switch ($hook){
-     case 'nav-menus.php':
-        wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-cuar-nav.js', array( 'jquery' ), $this->version, false );
+      case 'nav-menus.php':
+        wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-cuar-nav.js', array( 'jquery' ), $this->version, true );
+        break;
+      case 'post.php':
+      case 'post-new.php':
+        $screen = get_current_screen();
+        //check if js script exists
+        switch(true){
+          case file_exists(get_stylesheet_directory() . '/wpcrm-cuar/js/' . $screen->id . '.js'):
+            wp_enqueue_script( $screen->id, get_stylesheet_directory_uri() . '/wpcrm-cuar/js/' . $screen->id . '.js', array( 'jquery' ), $this->version, true );
+            break;
+          case file_exists( plugin_dir_path( __FILE__ ) . 'js/' . $screen->id . '.js' ):
+            wp_enqueue_script( $screen->id, plugin_dir_url( __FILE__ ) . 'js/' . $screen->id . '.js', array( 'jquery' ), $this->version, true );
+            break;
+        }
         break;
       default:
-        wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-customer-area-admin.js', array( 'jquery' ), $this->version, false );
+        wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-customer-area-admin.js', array( 'jquery' ), $this->version, true );
       break;
     }
 
