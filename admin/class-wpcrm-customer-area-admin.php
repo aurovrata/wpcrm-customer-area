@@ -72,7 +72,7 @@ class Wpcrm_Customer_Area_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-    
+
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wpcrm-customer-area-admin.css', array(), $this->version, 'all' );
 
 
@@ -220,6 +220,7 @@ class Wpcrm_Customer_Area_Admin {
         }else{
           $org_post = get_post($org_id);
           //create a new page
+          debug_msg("creating private page ".$org_post->post_title);
           if( function_exists('cuar_addon') ){
             $page_data = array(
               'post_title' => $org_post->post_title,
@@ -240,11 +241,15 @@ class Wpcrm_Customer_Area_Admin {
 */
               $owner = array( 'usr' => array( $user->ID ) );
               $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
-              $dummyp = get_post($page_id);
-              debug_msg($dummyp, "before saving owners ");
+              //$dummyp = get_post($page_id);
+              //debug_msg($dummyp, "before saving owners ");
               $po_addon->save_post_owners($page_id, $owner);
+
+
               add_post_meta($page_id, 'wpcrm_organisation_id', $org_id);
               debug_msg('Created new private page '.$page_id.' for company '.$org_post->post_title);
+              $dummyp = get_post($page_id);
+              debug_msg($dummyp, "after saving owners ");
             }
           }
         }
@@ -280,7 +285,7 @@ class Wpcrm_Customer_Area_Admin {
       // Check if the project is attached to an oganisation
       if(isset($_POST['_wpcrm_project-attach-to-organization']) && !empty($_POST['_wpcrm_project-attach-to-organization']) ){
         //let's make sure we have a customer area page created for this organisation
-        $org_id = $_POST['_wpcrm_contact-attach-to-organization'];
+        $org_id = $_POST['_wpcrm_project-attach-to-organization'];
         $args = array(
             'meta_key' => 'wpcrm_organisation_id',
             'meta_value' => $org_id,

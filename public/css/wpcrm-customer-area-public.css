@@ -14,6 +14,3 @@
 div#tabs.wpcrm-project-tabs li {
     font-size: 15px;
 }
-div#tabs.wpcrm-project-tabs li.project_type_order a {
-    border-bottom: #0072ff solid 3px;
-}

@@ -131,7 +131,6 @@ foreach($project_titles as $proj_id=>$title) {
           'order'          => 'DESC',
           'meta_query'     => $meta_query
         );
-        //debug_msg($args, "private files search query, ");
         $content_query = new WP_Query($args);
         $item_output ='';
         if ($content_query->have_posts()){
@@ -169,7 +168,7 @@ foreach($project_titles as $proj_id=>$title) {
       'meta_key'       => '_wpcrm_task-attach-to-project',
       'meta_value'     => $proj_id
     );
-    //debug_msg($args, "private files search query, ");
+    // debug_msg($args, "task search query, ");
     $content_query = new WP_Query($args);
     $item_output ='';
     if ($content_query->have_posts()){
