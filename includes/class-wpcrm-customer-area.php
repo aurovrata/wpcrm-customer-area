@@ -158,7 +158,7 @@ class Wpcrm_Customer_Area {
     $this->loader->add_filter( 'wp_insert_post_data', $plugin_admin,'remove_user_from_private_page', 30, 2 );
     $this->loader->add_action( 'save_post_wpcrm-contact', $plugin_admin,'create_user_for_contact', 30, 2 );
     //check wpcrm project creation
-    $this->loader->add_action( 'save_post_wpcrm-project', $plugin_admin,'validate_project', 30, 2 );
+    $this->loader->add_action( 'save_post_wpcrm-project', $plugin_admin,'validate_project', 100, 3 );
 
     //add the user to the contact table
     $this->loader->add_filter('manage_wpcrm-contact_posts_columns', $plugin_admin,'wpcrm_contact_column' );
@@ -182,8 +182,12 @@ class Wpcrm_Customer_Area {
 
     //modify WP CRM Project post type
     $this->loader->add_action('init', $plugin_admin, 'modify_wpcrm_post_type' ,30);
-
-
+    //trash & untrash wpcrm contact posts
+    $this->loader->add_action('trashed_post', $plugin_admin, 'trash_wpcrm_contact' ,30);
+    $this->loader->add_action('untrashed_post', $plugin_admin, 'untrash_wpcrm_contact' ,30);
+    //trash & untrash wpcrm project posts
+    $this->loader->add_action('trashed_post', $plugin_admin, 'trash_wpcrm_project' ,30);
+    $this->loader->add_action('untrashed_post', $plugin_admin, 'untrash_wpcrm_project' ,30);
 	}
 
 	/**

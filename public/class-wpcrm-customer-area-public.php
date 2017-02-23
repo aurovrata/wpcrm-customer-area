@@ -105,49 +105,75 @@ class Wpcrm_Customer_Area_Public {
    * @return object
    */
   public function start_el($item_output, $item) {
-      // if it isn't our custom object
-      //debug_msg($item, "menu object, ");
-      switch ($item->object){
+    // if it isn't our custom object
+    //debug_msg($item, "menu object, ");
+    switch ($item->object){
 
-          case ($item->object == 'cuar_nav'):
-              // just process it
-              if(function_exists('cuar_addon') ){
-                $cpp_addon = cuar_addon('customer-private-pages'); //this will instantiate the required class
-                //check if the logged in user has access to this
-                  if ( $cpp_addon->is_accessible_to_current_user()){
-                    //to check what this user owns, we need to call the post-owner class
-                    $po_addon = cuar_addon('post-owner');
-                    $current_user_id = get_current_user_id();
-                    //now we can build the query
+      case ($item->object == 'cuar_nav'):
+        // just process it
+        if(function_exists('cuar_addon') ){
+          $cpp_addon = cuar_addon('customer-private-pages'); //this will instantiate the required class
+          //check if the logged in user has access to this
+            if ( $cpp_addon->is_accessible_to_current_user()){
+              //to check what this user owns, we need to call the post-owner class
+              $po_addon = cuar_addon('post-owner');
+              $current_user_id = get_current_user_id();
+              //now we can build the query
+              $args = array(
+                'post_type'      => $cpp_addon->get_friendly_post_type(),
+                'posts_per_page' => -1,
+                'orderby'        => 'date',
+                'order'          => 'DESC',
+                'meta_query'     => $po_addon->get_meta_query_post_owned_by($current_user_id)
+              );
+
+              $content_query = new WP_Query($args);
+              $item_output ='';
+              if ($content_query->have_posts()){
+                while ($content_query->have_posts()) {
+                  $content_query->the_post();
+                  $cuar_menu_item = '<a href="'.get_the_permalink().'">'.get_the_title().'</a>';
+                  $cuar_menu_item = apply_filters('wpcrm_cuar_menu_item', $cuar_menu_item, $current_user_id);
+                  $item_output .= $cuar_menu_item;
+                  //get the project types
+                  if(!apply_filters('wpcrm_cuar_skip_project_type_sub_menus', false,  $current_user_id)){
                     $args = array(
-                      'post_type'      => $cpp_addon->get_friendly_post_type(),
-                      'posts_per_page' => $cpp_addon->get_max_item_number_on_dashboard(),
-                      'orderby'        => 'date',
-                      'order'          => 'DESC',
-                      'meta_query'     => $po_addon->get_meta_query_post_owned_by($current_user_id)
-                    );
-                    $content_query = new WP_Query($args);
-                    $item_output ='';
-                    if ($content_query->have_posts()){
-                      while ($content_query->have_posts()) {
-                        $content_query->the_post();
-                        $item_output .='<a href="'.get_the_permalink().'">'.get_the_title();
-                        $item_output .='</a>';
+                      'taxonomy' => 'project-type',
+                      'orderby'  => 'term_id',
+                      'order'    => 'ASC',
+                      'hide_empty' => false);
+                    $args = apply_filters('wpcrm_cuar_query_project_type_in_menu', $args, $current_user_id);
+                    $terms = get_terms($args);
+                    $class = esc_attr( implode( ' ', apply_filters( 'wpcrm_cuar_project_type_nav_menu_css', array_filter( $item->classes ), $item, $current_user_id) ) );
+                    $sub_class = esc_attr( implode( ' ', apply_filters( 'wpcrm_cuar_project_type_sub_menu_css', array('sub-menu'), $current_user_id) ) );
+                    if(!empty($terms)){
+                      $item_output .='<ul class="'.$sub_class.'">';
+                      foreach($terms as $term){
+                        if(!apply_filters('wpcrm_cuar_skip_project_type_in_menu', false, $term, $current_user_id)){
+                          $item_output .='<li class="'.$class.' project-type '.$term->slug.'">';
+                          $item_output .='<a href="'.get_the_permalink().'?type='.$term->term_id.'">'.$term->name.'</a>';
+                          $item_output .='<div class="menu-item-description">'.$term->description.'</div>';
+                          $item_output .='</li>';
+                        }
                       }
-                    }else{
-                      $item_output .='<span>'.apply_filters('wpcrm_cuar_no_page_nav_title', __('No pages found',$this->plugin_name)).'</span>';
+                      $item_output .='</ul>';
                     }
-                  }else{
-                    $item_output .='<span>'.apply_filters('wpcrm_cuar_no_access_nav_title', __('Insufficient access',$this->plugin_name)).'</span>';
                   }
+                }
               }else{
-                $item_output .='<span>'.apply_filters('wpcrm_cuar_error_nav_title', __('Error loading page',$this->plugin_name)).'</span>';
+                $item_output .='<span>'.apply_filters('wpcrm_cuar_no_page_nav_title', __('No pages found',$this->plugin_name)).'</span>';
               }
+            }else{
+              $item_output .='<span>'.apply_filters('wpcrm_cuar_no_access_nav_title', __('Insufficient access',$this->plugin_name)).'</span>';
+            }
+        }else{
+          $item_output .='<span>'.apply_filters('wpcrm_cuar_error_nav_title', __('Error loading page',$this->plugin_name)).'</span>';
+        }
 
-              break;
-      }
+        break;
+    }
 
-      return $item_output;
+    return $item_output;
   }
   /**
    * Funciton to disable the Customer Area css styling

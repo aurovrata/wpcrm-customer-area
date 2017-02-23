@@ -93,14 +93,11 @@ class Wpcrm_Customer_Area_Admin {
       case 'post.php':
       case 'post-new.php':
         $screen = get_current_screen();
-        //check if js script exists
-        switch(true){
-          case file_exists(get_stylesheet_directory() . '/wpcrm-cuar/js/' . $screen->id . '.js'):
-            wp_enqueue_script( $screen->id, get_stylesheet_directory_uri() . '/wpcrm-cuar/js/' . $screen->id . '.js', array( 'jquery' ), $this->version, true );
-            break;
-          case file_exists( plugin_dir_path( __FILE__ ) . 'js/' . $screen->id . '.js' ):
-            wp_enqueue_script( $screen->id, plugin_dir_url( __FILE__ ) . 'js/' . $screen->id . '.js', array( 'jquery' ), $this->version, true );
-            break;
+        //check if js script exists in the theme folder
+        if(file_exists(get_stylesheet_directory() . '/wpcrm-cuar/js/' . $screen->id . '.js')){
+          wp_enqueue_script( $screen->id, get_stylesheet_directory_uri() . '/wpcrm-cuar/js/' . $screen->id . '.js', array( 'jquery' ), $this->version, true );
+        } else {//use plugin version
+          wp_enqueue_script( $screen->id, plugin_dir_url( __FILE__ ) . 'js/' . $screen->id . '.js', array( 'jquery' ), $this->version, true );
         }
         break;
       default:
@@ -167,6 +164,13 @@ class Wpcrm_Customer_Area_Admin {
       $user='';
       if(isset($_POST['_wpcrm_contact-email']) && !empty($_POST['_wpcrm_contact-email']) ){
         $email = $_POST['_wpcrm_contact-email'];
+        $first_name = $last_name = '';
+        if( isset($_POST['_wpcrm_contact-first-name']) ){
+          $first_name = $_POST['_wpcrm_contact-first-name'];
+        }
+        if( isset($_POST['_wpcrm_contact-first-name']) ){
+          $last_name = $_POST['_wpcrm_contact-last-name'];
+        }
         //check if the user exists
         $user = get_user_by( 'email', $email );
         //debug_msg($user, " for ".$email);
@@ -181,6 +185,9 @@ class Wpcrm_Customer_Area_Admin {
           $user_id = wp_create_user( $username, $password, $email );
           update_post_meta($ID, '_wpcrm_contact-user_id', $user_id);
           $user = get_user_by( 'id', $user_id );
+          update_user_meta( $user->ID, 'first_name', $first_name);
+          update_user_meta( $user->ID, 'last_name', $last_name);
+          update_user_meta( $user->ID, 'display_name', $first_name.' '.$last_name);
         }else{
           update_post_meta($ID, '_wpcrm_contact-user_id', $user->ID);
         }
@@ -292,7 +299,7 @@ class Wpcrm_Customer_Area_Admin {
    * @param      int    $ID     the id of the post being saved.
    * @return     WP_Object    $post     the post being saved.
    */
-  public function validate_project($ID, $post){
+  public function validate_project($ID, $post, $update){
 
     if('publish' == $post->post_status){
       // Check if the project is attached to an oganisation
@@ -310,7 +317,7 @@ class Wpcrm_Customer_Area_Admin {
         if ($posts){
           $cuar_page = $posts[0];
           //add the private page to the project
-          add_post_meta($ID, 'cuar_private_page', $cuar_page->ID);
+          update_post_meta($ID, 'cuar_private_page', $cuar_page->ID);
         }else{
           debug_msg('Project creation: No private page linked to organisation '.$org_id);
         }
@@ -330,6 +337,52 @@ class Wpcrm_Customer_Area_Admin {
         wp_update_post( array( 'ID' => $ID, 'post_status' => 'draft' ) );
         // re-hook this function
         add_action( 'save_post_wpcrm-project', array($this, 'check_org_for_project'),10,2 );
+      }
+      //check if project type is set, wp_get_post_terms( $post_id, $taxonomy, $args );
+      $terms = wp_get_post_terms( $ID, 'project-type' );
+      if(!is_wp_error($terms)){
+        $existing_tasks_slugs = array();
+        if($update){ //this is an update of this project
+          $args = array(
+            'meta_key' => '_wpcrm_task-attach-to-project',
+            'meta_value' => $ID,
+            'post_type' => 'wpcrm-task',
+            'post_status' => 'any',
+            'posts_per_page' => -1
+          );
+          $posts = get_posts($args);
+
+      	  foreach($posts as $task){
+      	    $existing_tasks_slugs[$task->post_name] = $task->ID;
+      	  }
+        }
+
+        foreach($terms as $term){
+          $task_slug = $term->slug.'_'.$ID.'_'.'task';
+          if(!isset($existing_tasks_slugs[$task_slug])){
+	          $args = array(
+	            'post_type'   => 'wpcrm-task',
+	            'post_author' => $post->post_author,
+	            'post_title'  => $term->name.' | '.$post->post_title,
+	            'post_name'   => $task_slug,
+	            'post_status' => 'publish'
+	          );
+	          $task_id = wp_insert_post($args);
+	          update_post_meta($task_id, '_wpcrm_task-attach-to-project', $ID);
+      	  }else{
+      	    $task_id = $existing_tasks_slugs[$task_slug];
+      	  }
+          if( isset($_POST['_wpcrm_project-assigned']) ){
+            $assigned = $_POST['_wpcrm_project-assigned'];
+            update_post_meta($task_id, '_wpcrm_task-assignment',$assigned);
+          }
+          
+          if( isset($_POST['_wpcrm_project-closedate']) ){
+            $due_date = $_POST['_wpcrm_project-closedate'];
+            update_post_meta($task_id, '_wpcrm_task-due-date', strtotime($due_date));
+          }
+          update_post_meta($task_id, '_wpcrm_task-start-date', time());
+        }
       }
     }
   }
@@ -731,5 +784,141 @@ class Wpcrm_Customer_Area_Admin {
     //$wp_post_types['wpcrm-task']->show_in_menu = true;
     //$wp_post_types['wpcrm-task']->show_in_admin_bar = false;
   }
+  /**
+   * This function delete the user account associated with this contact post
+   * It is hooked on 'trashed_post'
+   * @since 1.0.0
+   * @param      int    $post_id     ID of post benig processed.
+  **/
+  public function trash_wpcrm_contact($post_id){
+    $post = get_post($post_id);
+    if(!empty($post) && 'wpcrm-contact' != $post->post_type){
+      return;
+    }
+    //delete the user account associated with this contact
+    $user_id = get_post_meta($post_id, '_wpcrm_contact-user_id', true);
+    wp_delete_user( $user_id);
+    //remove the user from the CUAR pages
+    $org_id = get_post_meta($post_id, '_wpcrm_contact-attach-to-organization', true);
+    if(!empty($org_id)){
+      $args = array(
+          'meta_key' => 'wpcrm_organisation_id',
+          'meta_value' => $org_id,
+          'post_type' => 'cuar_private_page',
+          'post_status' => 'any',
+          'posts_per_page' => -1
+      );
+      $posts = get_posts($args);
+      if ($posts){
+        $cuar_page = $posts[0];
+        if( function_exists('cuar_addon') ){
+          //debug_msg($cuar_page->ID, "Foudn private page ");
 
+          $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
+          $owners = $po_addon->get_post_owners($cuar_page->ID);
+          if(($key = array_search($user_id, $owners['usr'])) !== false) {
+            unset($owners['usr'][$key]);
+            $po_addon->save_post_owners($cuar_page->ID, $owners);
+          }
+
+        }
+      }
+    }
+  }
+  /**
+   * This function creates a user account associated with this contact post
+   * It is hooked on 'ustrashed_post'
+   * @since 1.0.0
+   * @param      int    $post_id     ID of post benig processed.
+  **/
+  public function untrash_wpcrm_contact($post_id){
+    $screen = get_current_screen();
+    if('wpcrm-contact' != $screen->post_type){
+      return;
+    }
+    $post=get_post($post_id);
+    $this->create_user_for_contact($post_id, $post);
+  }
+  /**
+   * This function trashes any tasks associated with the project being trashed
+   * It is hooked on 'trashed_post'
+   * @since 1.0.0
+   * @param      int    $post_id     ID of post benig processed.
+  **/
+  public function trash_wpcrm_project($post_id){
+    $post = get_post($post_id);
+    if(!empty($post) && 'wpcrm-project' != $post->post_type){
+      return;
+    }
+    //trash associated tasks
+    $tasks = get_posts(array(
+      'post_type'=> 'wpcrm-task',
+      'meta_key' => '_wpcrm_task-attach-to-project',
+      'meta_value' => $post_id,
+      'post_status' => 'any'
+    ));
+    if(!empty($tasks)){
+      foreach($tasks as $task){
+        wp_trash_post( $task->ID  );
+        add_post_meta(
+          $post_id,
+          '_wp_trash_wpcrm-task', //key
+          $task->ID, //value
+          false //unique
+        );
+      }
+    }
+    //trash any cuar private files
+    $files = get_posts(array(
+      'post_type'=> 'cuar_private_file',
+      'meta_key' => 'wpcrm-project-id',
+      'meta_value' => $post_id,
+      'post_status' => 'any'
+    ));
+    if(!empty($files)){
+      foreach($files as $file){
+        wp_trash_post( $file->ID  );
+        add_post_meta(
+          $post_id,
+          '_wp_trash_cuar-file', //key
+          $file->ID, //value
+          false //unique
+        );
+      }
+    }
+  }
+  /**
+   * This function untrashed associated project/cuar file
+   * It is hooked on 'ustrashed_post'
+   * @since 1.0.0
+   * @param      int    $post_id     ID of post benig processed.
+  **/
+  public function untrash_wpcrm_project($post_id){
+    $screen = get_current_screen();
+    if('wpcrm-project' != $screen->post_type){
+      return;
+    }
+    //untrash tasks
+    $task_ids = get_post_meta(
+      $post_id,
+      '_wp_trash_wpcrm-task',
+      false //single value
+    );
+    if(!empty($task_ids)){
+      foreach($task_ids as $task_id){
+        wp_untrash_post($task_id);
+      }
+    }
+    //untrash files
+    $file_ids = get_post_meta(
+      $post_id,
+      '_wp_trash_cuar-file',
+      false //single value
+    );
+    if(!empty($file_ids)){
+      foreach($file_ids as $file_id){
+        wp_untrash_post($file_id);
+      }
+    }
+  }
 }

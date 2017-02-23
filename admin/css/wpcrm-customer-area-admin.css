@@ -5,3 +5,6 @@
  #wpcrm-error-message {
   margin-left:0;
 }
+#wpcrm-default-fields .form-wrap label {
+    display: block !important;
+}
