@@ -188,6 +188,24 @@ class Wpcrm_Customer_Area {
     //trash & untrash wpcrm project posts
     $this->loader->add_action('trashed_post', $plugin_admin, 'trash_wpcrm_project' ,30);
     $this->loader->add_action('untrashed_post', $plugin_admin, 'untrash_wpcrm_project' ,30);
+    //add extra columns to projects, tasks, opportunities, contacts
+    $this->loader->add_filter('manage_edit-wpcrm-project_columns', $plugin_admin, 'add_organisation_column' ,20);
+    $this->loader->add_filter('manage_edit-wpcrm-opportunity_columns', $plugin_admin, 'add_organisation_column' ,20);
+    $this->loader->add_filter('manage_edit-wpcrm-task_columns', $plugin_admin, 'add_organisation_column' ,20);
+    //$this->loader->add_filter('manage_edit-wpcrm-contact_columns', $plugin_admin, 'add_organisation_column' ,20);
+    $this->loader->add_action('manage_wpcrm-project_posts_custom_column', $plugin_admin, 'populate_organisation_column',10,2);
+    $this->loader->add_action('manage_wpcrm-opportunity_posts_custom_column', $plugin_admin, 'populate_organisation_column',10,2);
+    $this->loader->add_action('manage_wpcrm-task_posts_custom_column', $plugin_admin, 'populate_organisation_column',10,2);
+    //$this->loader->add_action('manage_wpcrm-contact_posts_custom_column', $plugin_admin, 'populate_organisation_column',10,2);
+    $this->loader->add_filter('manage_edit-wpcrm-project_sortable_columns', $plugin_admin, 'sort_organisation_column' ,20);
+    $this->loader->add_filter('manage_edit-wpcrm-task_sortable_columns', $plugin_admin, 'sort_organisation_column' ,20);
+    $this->loader->add_filter('manage_edit-wpcrm-opportunity_sortable_columns', $plugin_admin, 'sort_organisation_column' ,20);
+    //$this->loader->add_filter('manage_edit-wpcrm-contact_sortable_columns', $plugin_admin, 'sort_organisation_column' ,20);
+    //add filter to tables
+    $this->loader->add_action('restrict_manage_posts', $plugin_admin, 'wpcrm_type_filter' , 10);
+    $this->loader->add_action('restrict_manage_posts', $plugin_admin, 'organisation_filtering' , 10);
+    $this->loader->add_filter( 'parse_query', $plugin_admin, 'filter_request_query' , 10);
+
 	}
 
 	/**

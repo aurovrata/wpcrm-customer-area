@@ -188,6 +188,8 @@ class Wpcrm_Customer_Area_Admin {
           update_user_meta( $user->ID, 'first_name', $first_name);
           update_user_meta( $user->ID, 'last_name', $last_name);
           update_user_meta( $user->ID, 'display_name', $first_name.' '.$last_name);
+          //notify user
+          wp_new_user_notification($user_id, null, 'both');
         }else{
           update_post_meta($ID, '_wpcrm_contact-user_id', $user->ID);
         }
@@ -376,7 +378,7 @@ class Wpcrm_Customer_Area_Admin {
             $assigned = $_POST['_wpcrm_project-assigned'];
             update_post_meta($task_id, '_wpcrm_task-assignment',$assigned);
           }
-          
+
           if( isset($_POST['_wpcrm_project-closedate']) ){
             $due_date = $_POST['_wpcrm_project-closedate'];
             update_post_meta($task_id, '_wpcrm_task-due-date', strtotime($due_date));
@@ -920,5 +922,175 @@ class Wpcrm_Customer_Area_Admin {
         wp_untrash_post($file_id);
       }
     }
+  }
+  /**
+   * Add organistation to the table list
+   * Hooked on 'manage_edit-{$post_type}_posts_columns'
+   * @since 1.0.0
+   * @param      Array    $columns     array of columns to display.
+   * @return     Array    array of columns to display.
+  **/
+  public function add_organisation_column($columns){
+    $column_title = apply_filters('wpcrm_cuar_organisation_column_title', 'Organization');
+    $start = array_splice($columns, 0, 2);
+    $columns = array_merge($start, array('organisation'=>$column_title), $columns);
+    return $columns;
+  }
+  /**
+  * Add organistation to the table list
+  * Hooked on 'manage_edit-{$post_type}_sortable_columns'
+  * @since 1.0.0
+  * @param      Array    $columns     array of columns to display.
+  * @return     Array    array of columns to display.
+  **/
+  public function sort_organisation_column($columns){
+    //array_splice($columns, 2, 0 , 'organisation');
+    $columns['organisation'] = 'organisation';
+    return $columns;
+  }
+  /**
+  * Populate custom columns
+  * hooked on 'manage_{$post_type}_posts_custom_column'
+  * @since 1.0.0
+  * @param      String    $column     column key.
+  * @param      Int    $post_id     row post id.
+  * @return     String    value to display.
+  */
+  public function populate_organisation_column( $column, $post_id ) {
+    if('organisation' == $column){
+      $screen = get_current_screen();
+      switch($screen->post_type){
+        case 'wpcrm-project':
+        case 'wpcrm-opportunity':
+        case 'wpcrm-contact':
+          $meta = '_' . str_replace('-', '_', $screen->post_type) . '-attach-to-organization';
+          $org_id = get_post_meta($post_id, $meta, true);
+          echo get_the_title($org_id);
+          break;
+        case 'wpcrm-task':
+          $proj_id = get_post_meta($post_id, '_wpcrm_task-attach-to-project', true);
+          if(empty($proj_id)){
+            echo '<em>No parent project</em>';
+          }else{
+            $org_id = get_post_meta($proj_id, '_wpcrm_project-attach-to-organization', true);
+            if( empty($org_id) ){
+              echo '<em>No parent organization</em>';
+            }else{
+              echo get_the_title($org_id);
+            }
+          }
+          break;
+      }
+    }
+  }
+  /**
+   * Adds a filter to the WP-CRM post tables
+   * Hooked to action 'restrict_manage_posts'
+   * @since 1.0.0
+   * @param      String    $post_type     post to filter.
+   * @return     String    echo html dropdown select to display
+  **/
+  public function wpcrm_type_filter($post_type){
+    if(false === strpos($post_type, 'wpcrm-')){
+      return;
+    }
+    $taxonomy_slug = str_replace('wpcrm-', '', $post_type). '-type';
+    $taxonomy = get_taxonomy($taxonomy_slug);
+    $selected = '';
+    $request_attr = 'wpcrm_type';
+    if ( isset($_REQUEST[$request_attr]) ) {
+      $selected = $_REQUEST[$request_attr];
+    }
+    wp_dropdown_categories(array(
+      'show_option_all' =>  __("Show All {$taxonomy->label}"),
+      'taxonomy'        =>  $taxonomy_slug,
+      'name'            =>  $request_attr,
+      'orderby'         =>  'name',
+      'selected'        =>  $selected,
+      'hierarchical'    =>  true,
+      'depth'           =>  3,
+      'show_count'      =>  true, // Show # listings in parents
+      'hide_empty'      =>  false, // Don't show posts w/o terms
+    ));
+  }
+  /**
+  * Adds a filter to the WP-CRM post tables for organisations
+  * Hooked to action 'restrict_manage_posts'
+   * @since 1.0.0
+   * @param      String    $post_type     post to filter.
+   * @return     String    echo html dropdown select to display
+  **/
+  public function organisation_filtering($post_type){
+    if(false === array_search($post_type, array('wpcrm-project', 'wpcrm-opportunity', 'wpcrm-task') )){
+      return;
+    }
+    $selected = '';
+    $request_attr = 'wpcrm_org';
+    if ( isset($_REQUEST[$request_attr]) ) {
+      $selected = $_REQUEST[$request_attr];
+    }
+    $args = array(
+      'post_type'=>'wpcrm-organization',
+      'post_status' => 'publish',
+      'orderby' => 'title'
+    );
+    $org_posts = get_posts($args);
+
+    echo '<select id="wpcrm_organisation" name="wpcrm_org">';
+    echo '<option value="0">' . __( 'Show all Organizations', 'wpcrm-customer-area' ) . ' </option>';
+    foreach( $org_posts as $org ) {
+      $select = ($org->ID == $selected) ? ' selected="selected"':'';
+      echo '<option value="'.$org->ID.'"'.$select.'>' . $org->post_title . ' </option>';
+    }
+    echo '</select>';
+    wp_reset_postdata();
+  }
+  /**
+   * Filter the wpcrm table post per ogranisation
+   * Hooked on filter 'parse_query'
+   * @since 1.0.0
+   * @param      WP_Query    $query     query passed by reference.
+   * @return     string    $p2     .
+  **/
+  public function filter_request_query($query){
+    if( !(is_admin() AND $query->is_main_query()) ){
+      return $query;
+    }
+    if( false === array_search($query->query['post_type'], array('wpcrm-project', 'wpcrm-opportunity', 'wpcrm-task') ) ){
+      return $query;
+    }
+    $post_type = $query->query['post_type'];
+    //organization filter
+    if(isset($_REQUEST['wpcrm_org']) && 0 != $_REQUEST['wpcrm_org']){
+      $meta='';
+      switch($post_type){
+        case 'wpcrm-project':
+        case 'wpcrm-opportunity':
+          $meta = '_' . str_replace('-', '_', $post_type) . '-attach-to-organization';
+          break;
+        case 'wpcrm-task':
+          $meta =  '_wpcrm_task-attach-to-project';
+          break;
+      }
+      $query->query_vars['meta_query'] = array(array(
+        'field' => $meta,
+        'value' => $_REQUEST['wpcrm_org'],
+        'compare' => '=',
+        'type' => 'CHAR'
+      ));
+    }
+    //type filter
+    if( isset($_REQUEST['wpcrm_type']) &&  0 != $_REQUEST['wpcrm_type']){
+      $term =  sanitize_text_field($_REQUEST['wpcrm_type']);
+      $taxonomy_slug = str_replace('wpcrm-', '', $post_type). '-type';
+      $query->query_vars['tax_query'] = array(
+        array(
+            'taxonomy'  => $taxonomy_slug,
+            'field'     => 'ID',
+            'terms'     => array($term)
+        )
+      );
+    }
+    return $query;
   }
 }
