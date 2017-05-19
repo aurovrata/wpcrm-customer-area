@@ -5,7 +5,6 @@
     $('#_wpcrm_project-attach-to-contact-input').parent().hide();
     $('#_wpcrm_project-attach-to-contact-new').parent().hide();
 
-
   });
 
 })( jQuery );

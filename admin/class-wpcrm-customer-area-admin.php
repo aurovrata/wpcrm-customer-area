@@ -137,13 +137,14 @@ class Wpcrm_Customer_Area_Admin {
         if ($posts){
           $cuar_page = $posts[0];
           if( function_exists('cuar_addon') ){
-            debug_msg($cuar_page->ID, "Found private page ");
-
+            //debug_msg($cuar_page->ID, "Found private page ");
             $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
             $owners = $po_addon->get_post_owners($cuar_page->ID);
-            debug_msg($owners, "Removing ".$user_id." from Current owners ");
+            //debug_msg($owners, "Removing ".$user_id." from Current owners ");
             $owners['usr'] = array_diff($owners['usr'], array($user_id) );
             $po_addon->save_post_owners($cuar_page->ID, $owners);
+          }else{
+            debug_msg("Customer Area function 'cuar_addon' not found ");
           }
         }
       }
