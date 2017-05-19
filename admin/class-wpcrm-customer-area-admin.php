@@ -340,6 +340,13 @@ class Wpcrm_Customer_Area_Admin {
         wp_update_post( array( 'ID' => $ID, 'post_status' => 'draft' ) );
         // re-hook this function
         add_action( 'save_post_wpcrm-project', array($this, 'check_org_for_project'),10,2 );
+
+        //notify all contacts.
+        if(!$update){
+          //find which organisation id it belongs to (Org_id)
+          //search all wpcrm-contacts which have have meta-field organisation id = to this org_id.
+          //with contacts, get emails, send notification.
+        }
       }
       //check if project type is set, wp_get_post_terms( $post_id, $taxonomy, $args );
       $terms = wp_get_post_terms( $ID, 'project-type' );
