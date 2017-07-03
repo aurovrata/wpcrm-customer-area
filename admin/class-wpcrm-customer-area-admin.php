@@ -390,6 +390,39 @@ class Wpcrm_Customer_Area_Admin {
   }
 
   /**
+   * Sends a new project creation notification email to all contacts attached to an Organization
+   * This function hooks the 'added_post_meta' and sends an email to all contacts for a particular organization
+   * @since 1.0.1
+   * @param      int      $meta_id   the meta_id of the postmeta being saved.
+   * @param      int      $post_id   the post_id of the postmeta being saved.
+   * @param      array    $meta_key  the meta_key of the postmeta being saved.
+   * @param      array    $meta_value the meta_value of the postmeta being saved.
+   */
+  public function project_creation_notification($meta_id, $post_id, $meta_key, $meta_value){
+            $post = get_post($post_id);
+
+            if($post->post_type === 'wpcrm-project') {
+                $project_organization = get_post_meta($post_id);
+                if(isset($project_organization['_wpcrm_project-attach-to-organization'])){
+                    $got_posts = get_posts(array(
+                        'meta_key' => '_wpcrm_contact-attach-to-organization',
+                        'meta_value' => $project_organization['_wpcrm_project-attach-to-organization'],
+                        'post_type' => 'wpcrm-contact',
+                        'post_status' => 'any',
+                        'posts_per_page' => -1
+                    ));
+                    foreach($got_posts as $posted){
+                        $contact_details = get_post_custom($posted->ID);
+                        $emails[] = $contact_details['_wpcrm_contact-email'];
+                    }
+
+                    wp_mail($emails, "Project Added / Deleted", "Project Added or Deleted");
+                }
+            }
+
+    }
+
+  /**
    * Add a user column to WP-CRM contact table
    * This is called by a filter set in the 'wpcrm_contact_admin_table' in this class.
    * @since 1.0.0
@@ -1093,4 +1126,5 @@ class Wpcrm_Customer_Area_Admin {
     }
     return $query;
   }
+
 }
