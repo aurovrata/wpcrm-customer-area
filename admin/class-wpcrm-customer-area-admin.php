@@ -1127,4 +1127,54 @@ class Wpcrm_Customer_Area_Admin {
     return $query;
   }
 
+
+  /**
+   * Add a column to the User Admin Table
+   * Hooked on 'manage_users_columns'
+   * @since 1.0.0
+   * @param      array  $column    Column to be added
+   * @return     array  $column
+   **/
+  function new_modify_user_table($column){
+      $column['organisation'] = 'Organization';
+      return $column;
+  }
+
+  /**
+   * Add a column to the User Admin Table
+   * Hooked on 'manage_users_custom_column'
+   * @since 1.0.0
+   * @param      string $val  Custom column output. Default empty
+   * @param      string $column_name  Column name
+   * @param      int $user_id  ID of the listed user
+   * @return     array  $column
+   **/
+  function add_organisation_to_user_table($val, $column_name, $user_id){
+      switch ($column_name) {
+          case 'organisation' :
+              $got_posts = get_posts(array(
+                  'meta_key' => '_wpcrm_contact-user_id',
+                  'meta_value' => $user_id,
+                  'post_type' => 'wpcrm-contact',
+                  'post_status' => 'any',
+                  'posts_per_page' => -1
+              ));
+
+              $org = 0;
+
+              if(empty($got_posts)){
+                  $org = 'NA';
+              }else{
+                  $details = get_post_custom($got_posts[0]->ID);
+                  $org_id = $details['_wpcrm_contact-attach-to-organization'][0];
+                  $org_post = get_post($org_id);
+                  $org = $org_post->post_title;
+              }
+              return $org;
+              break;
+          default:
+      }
+      return $val;
+  }
+
 }
