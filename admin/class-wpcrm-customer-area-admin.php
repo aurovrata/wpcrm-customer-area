@@ -1177,4 +1177,69 @@ class Wpcrm_Customer_Area_Admin {
       return $val;
   }
 
+  function wpcrm_customer_area__user_table_filtering()
+    {
+        if ( isset( $_GET[ 'organization' ]) ) {
+            $organization = $_GET[ 'organization' ];
+            $organization = !empty( $organization[ 0 ] ) ? $organization[ 0 ] : $organization[ 1 ];
+            $organization = wp_strip_all_tags($organization);
+        } else {
+            $section = -1;
+        }
+        echo ' <select name="organization[]" style="float:none;"><option value="">Organization..</option>';
+
+        $got_posts = get_posts(array(
+            'meta_key' => '_wpcrm_contact-attach-to-organization',
+            'post_type' => 'wpcrm-contact',
+            'post_status' => 'any',
+            'posts_per_page' => -1
+        ));
+
+        foreach($got_posts as $posted){
+            $organization = get_post_custom($posted->ID);
+            $org_id[] = $organization['_wpcrm_contact-attach-to-organization'][0];
+        }
+
+        foreach(array_unique($org_id) as $uniq_org_id){
+            $org_post = get_post($uniq_org_id);
+            $org = $org_post->post_title;
+            echo '<option value="' . $uniq_org_id . '">' . $org . '</option>';
+        }
+
+        echo '</select>';
+
+        echo '<input type="submit" class="button" value="Filter">';
+
+    }
+
+    function wpcrm_customer_area__user_by_org($query)
+    {
+        global $pagenow;
+
+        if ( is_admin() &&
+            'users.php' == $pagenow &&
+            isset( $_GET[ 'organization' ] ) &&
+            is_array( $_GET[ 'organization' ] )
+        ) {
+            $organization = $_GET[ 'organization' ];
+            $organization = !empty( $organization[ 0 ] ) ? $organization[ 0 ] : $organization[ 1 ];
+
+            $user_posts = get_posts(array(
+                'meta_key' => '_wpcrm_contact-attach-to-organization',
+                'meta_value' => $organization,
+                'post_type' => 'wpcrm-contact',
+                'post_status' => 'any',
+                'posts_per_page' => -1
+            ));
+
+            foreach($user_posts as $user_post){
+                $user_post_ids = get_post_custom($user_post->ID);
+                $user_ids[] = $user_post_ids['_wpcrm_contact-user_id'];
+            }
+
+            $query_user_ids = call_user_func_array('array_merge', $user_ids);
+
+            $query->query_vars['include'] = $query_user_ids;
+        }
+    }
 }
