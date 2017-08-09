@@ -1,5 +1,5 @@
 <?php
-/** Template version: 3.0.0
+/** Template version: 3.2.0
  *
  * -= 3.0.0 =-
  * - Improve UI for new master-skin
