@@ -964,7 +964,7 @@ class Wpcrm_Customer_Area_Admin {
    * @return     Array    array of columns to display.
   **/
   public function add_organisation_column($columns){
-    $column_title = apply_filters('wpcrm_cuar_organisation_column_title', 'Organization');
+    $column_title = apply_filters('wpcrm_cuar_organisation_column_title', 'Organisation');
     $start = array_splice($columns, 0, 2);
     $columns = array_merge($start, array('organisation'=>$column_title), $columns);
     return $columns;
@@ -1070,13 +1070,15 @@ class Wpcrm_Customer_Area_Admin {
     $org_posts = get_posts($args);
 
     echo '<select id="wpcrm_organisation" name="wpcrm_org">';
-    echo '<option value="0">' . __( 'Show all Organizations', 'wpcrm-customer-area' ) . ' </option>';
-    foreach( $org_posts as $org ) {
-      $select = ($org->ID == $selected) ? ' selected="selected"':'';
-      echo '<option value="'.$org->ID.'"'.$select.'>' . $org->post_title . ' </option>';
-    }
+		if(!empty($org_posts)){
+	    echo '<option value="0">' . __( 'Show all Organizations', 'wpcrm-customer-area' ) . ' </option>';
+	    foreach( $org_posts as $org ) {
+	      $select = ($org->ID == $selected) ? ' selected="selected"':'';
+	      echo '<option value="'.$org->ID.'"'.$select.'>' . $org->post_title . ' </option>';
+	    }
+			wp_reset_postdata();
+		}
     echo '</select>';
-    wp_reset_postdata();
   }
   /**
    * Filter the wpcrm table post per ogranisation

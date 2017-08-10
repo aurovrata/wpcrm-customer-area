@@ -207,8 +207,8 @@ class Wpcrm_Customer_Area {
     $this->loader->add_action('restrict_manage_posts', $plugin_admin, 'organisation_filtering' , 10);
     $this->loader->add_filter( 'parse_query', $plugin_admin, 'filter_request_query' , 10);
 
-    $this->loader->add_action( 'manage_users_columns', $plugin_admin, 'new_modify_user_table', 10);
-    $this->loader->add_action( 'manage_users_custom_column', $plugin_admin, 'add_organisation_to_user_table', 10, 3);
+    $this->loader->add_filter( 'manage_users_columns', $plugin_admin, 'new_modify_user_table', 10);
+    $this->loader->add_filter( 'manage_users_custom_column', $plugin_admin, 'add_organisation_to_user_table', 10, 3);
 
     // Add a dropdown to filter organizations in users table
     $this->loader->add_action( 'restrict_manage_users', $plugin_admin, 'wpcrm_customer_area__user_table_filtering', 10);
