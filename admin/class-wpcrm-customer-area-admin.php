@@ -125,27 +125,29 @@ class Wpcrm_Customer_Area_Admin {
         //the copmany has been re-mapped, we need to remove user rights from old company page
         //get the user first
         $user_id = get_post_meta($post_id, '_wpcrm_contact-user_id', true);
+				if(!empty($user_id)){
+	        $args = array(
+	            'meta_key' => 'wpcrm_organisation_id',
+	            'meta_value' => $saved_org_id,
+	            'post_type' => 'cuar_private_page',
+	            'post_status' => 'any',
+	            'posts_per_page' => -1
+	        );
+	        $posts = get_posts($args);
+	        if ($posts){
+	          $cuar_page = $posts[0];
+	          if( function_exists('cuar_addon') ){
+	            debug_msg($cuar_page->ID, "Found private page ");
 
-        $args = array(
-            'meta_key' => 'wpcrm_organisation_id',
-            'meta_value' => $saved_org_id,
-            'post_type' => 'cuar_private_page',
-            'post_status' => 'any',
-            'posts_per_page' => -1
-        );
-        $posts = get_posts($args);
-        if ($posts){
-          $cuar_page = $posts[0];
-          if( function_exists('cuar_addon') ){
-            debug_msg($cuar_page->ID, "Found private page ");
-
-            $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
-            $owners = $po_addon->get_post_owners($cuar_page->ID);
-            debug_msg($owners, "Removing ".$user_id." from Current owners ");
-            $owners['usr'] = array_diff($owners['usr'], array($user_id) );
-            $po_addon->save_post_owners($cuar_page->ID, $owners);
-          }
-        }
+	            $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
+	            $owners = $po_addon->get_post_owners($cuar_page->ID);
+	            debug_msg($owners, "Removing ".$user_id." from Current owners ");
+	            $owners['usr'] = array_diff($owners['usr'], array($user_id) );
+	            $po_addon->save_post_owners($cuar_page->ID, $owners);
+	          }
+						wp_reset_postdata();
+	        }
+				}
       }
     }
     return $post_data;
@@ -228,7 +230,7 @@ class Wpcrm_Customer_Area_Admin {
         if ($posts){
           $cuar_page = $posts[0];
           if( function_exists('cuar_addon') ){
-            //debug_msg($cuar_page->ID, "Foudn private page ");
+            debug_msg($cuar_page->ID, "Found private page ");
 
             $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
             $owners = $po_addon->get_post_owners($cuar_page->ID);
@@ -236,9 +238,51 @@ class Wpcrm_Customer_Area_Admin {
             if(!in_array($user->ID, $owners['usr'])){
               $owners['usr'][] = $user->ID;
               $po_addon->save_post_owners($cuar_page->ID, $owners);
+							debug_msg($owners, "Added ".$user->ID." to Current owners ");
             }
 
           }
+					wp_reset_postdata(); //organisation search.
+					//search for private files
+					$args = array(
+						'post_type' => 'wpcrm-project',
+						'post_status' => 'publish',
+						'meta_key' => '_wpcrm_project-attach-to-organization',
+						'meta_value' => $org_id
+					);
+					$projects = get_posts($args);
+					if(!empty($projects)){
+						$args = array();
+						foreach($projects as $project){
+							$args[] = $project->ID;
+						}
+						wp_reset_postdata(); //projects
+						$args = array(
+							'post_type' => 'cuar_private_file',
+							'post_status' => 'any',
+							'meta_key' => 'wpcrm-project-id',
+							'meta_value' => $args,
+							'meta_compare' => 'IN'
+						);
+						$files = get_posts($args);
+						if(!empty($files)){
+							if( function_exists('cuar_addon') ){
+								$po_addon = cuar_addon('post-owner'); //this will instantiate the required class
+								foreach($files as $file){
+			            debug_msg($file->ID, "Found private file ");
+			            $owners = $po_addon->get_post_owners($file->ID);
+
+			            if(!in_array($user->ID, $owners['usr'])){
+			              $owners['usr'][] = $user->ID;
+			              $po_addon->save_post_owners($file->ID, $owners);
+										debug_msg($owners, "Added ".$user->ID." to Current owners ");
+			            }
+
+			          }
+							}
+							wp_reset_postdata();
+						}
+					}
         }else{
           $org_post = get_post($org_id);
           //create a new page
@@ -408,15 +452,14 @@ class Wpcrm_Customer_Area_Admin {
                         'meta_key' => '_wpcrm_contact-attach-to-organization',
                         'meta_value' => $project_organization['_wpcrm_project-attach-to-organization'],
                         'post_type' => 'wpcrm-contact',
-                        'post_status' => 'any',
+                        'post_status' => 'publish',
                         'posts_per_page' => -1
                     ));
                     foreach($got_posts as $posted){
-                        $contact_details = get_post_custom($posted->ID);
-                        $emails[] = $contact_details['_wpcrm_contact-email'];
+                        $emails[] = get_post_meta($posted->ID, '_wpcrm_contact-email', true);
                     }
-
-                    wp_mail($emails, "Project Added / Deleted", "Project Added or Deleted");
+										debug_msg($emails, 'sending emails');
+                    wp_mail($emails, "New Project Created", "New Project Created");
                 }
             }
 
