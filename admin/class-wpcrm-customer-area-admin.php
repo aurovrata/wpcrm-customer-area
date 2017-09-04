@@ -1101,4 +1101,16 @@ class Wpcrm_Customer_Area_Admin {
     }
     return $query;
   }
+	/**
+	* Funciton to modify the dashboard comments link to the taks comment.
+	* Hooked on 'comment_row_actions'
+	* @since 1.0.0
+	**/
+	public function dashboard_comment_links($actions, $comment_post){
+		if(isset($actions['view'])){
+			$link = admin_url('/post.php?post='.$comment_post->comment_post_ID.'&action=edit#commentsdiv');
+			$actions['view'] = '<a class="comment-link" href="' . esc_url( $link ) . '" aria-label="' . esc_attr__( 'View comment in task' ) . '">' . __( 'View' ) . '</a>';
+		}
+		return $actions;
+	}
 }
