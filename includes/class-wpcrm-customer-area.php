@@ -159,7 +159,8 @@ class Wpcrm_Customer_Area {
     $this->loader->add_action( 'save_post_wpcrm-contact', $plugin_admin,'create_user_for_contact', 30, 2 );
     //check wpcrm project creation
     $this->loader->add_action( 'save_post_wpcrm-project', $plugin_admin,'validate_project', 100, 3 );
-
+    // email all contacts of project on creation
+    $this->loader->add_action( 'added_post_meta', $plugin_admin,'project_creation_notification', 10, 4 );
     //add the user to the contact table
     $this->loader->add_filter('manage_wpcrm-contact_posts_columns', $plugin_admin,'wpcrm_contact_column' );
     $this->loader->add_action('manage_wpcrm-contact_posts_custom_column', $plugin_admin,'wpcrm_contact_column_value',10, 2);
@@ -208,7 +209,16 @@ class Wpcrm_Customer_Area {
 		//dashboard comments
 		$this->loader->add_filter( 'comment_row_actions', $plugin_admin, 'dashboard_comment_links' , 10,2);
 
-	}
+    $this->loader->add_filter( 'manage_users_columns', $plugin_admin, 'new_modify_user_table', 10);
+    $this->loader->add_filter( 'manage_users_custom_column', $plugin_admin, 'add_organisation_to_user_table', 10, 3);
+
+    // Add a dropdown to filter organizations in users table
+    $this->loader->add_action( 'restrict_manage_users', $plugin_admin, 'wpcrm_customer_area__user_table_filtering', 10);
+    $this->loader->add_filter( 'pre_get_users', $plugin_admin, 'wpcrm_customer_area__user_by_org', 10);
+
+
+
+    }
 
 	/**
 	 * Register all of the hooks related to the public-facing functionality

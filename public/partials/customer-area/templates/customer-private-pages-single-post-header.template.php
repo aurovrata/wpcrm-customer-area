@@ -30,7 +30,8 @@ $args = array(
   'post_type'      => 'wpcrm-project',
   'posts_per_page' => -1,
   'orderby'        => 'date',
-  'order'          => 'DESC'
+  'order'          => 'DESC',
+
 );
 /*
  If the menu option to show project types as sub-menu was skipped we display all project post
@@ -71,11 +72,21 @@ if( !apply_filters('wpcrm_cuar_skip_project_type_sub_menus', false,  $current_us
   }
 }
 //let's make sure we have the right organisation
+/**
+* filter out complete projects
+* @since 1.0rc2
+*/
 $args['meta_query'] = array(
+  'relation' => 'AND',
 		array(
 			'key'     => '_wpcrm_project-attach-to-organization',
 			'value'   => $org_id,
 		),
+    array(
+      'key' => '_wpcrm_project-status',
+      'value' => 'complete',
+      'compare' => 'NOT lIKE'
+    )
 	);
 //$project_posts = new WP_Query( $args );
 $project_posts = get_posts( $args );
@@ -87,11 +98,12 @@ $project_class  = array();
 //debug_msg($wp_filter['pre_get_posts'], 'pre_get_posts ...');
 
 //debug_msg($project_posts->re
+if(!empty($project_posts)){
+  foreach ( $project_posts as $post ) {
+    $post_id = $post->ID;
 
-foreach ( $project_posts as $post ) {
-  $post_id = $post->ID;
+  	$project_titles[$post_id] = $post->post_title;
 
-	$project_titles[$post_id] = $post->post_title;
 
   $project_type = wp_get_post_terms( $post_id, 'project-type' );
   if(is_wp_error($project_type)){
@@ -109,22 +121,34 @@ foreach ( $project_posts as $post ) {
     if(apply_filters('wpcrm_cuar_skip_project_type_in_menu', false, $type, $current_user_id)){
       continue;
     }
-    //let's buffer any template parts for this project in the theme folder ./wpcrm-cuar/
-    ob_start();
-    if( file_exists( get_stylesheet_directory().'/wpcrm-cuar/project-'.$type->slug.'.php' ) ) {
-      include(get_stylesheet_directory().'/wpcrm-cuar/project-'.$type->slug.'.php');
-    }else{
-      include(plugin_dir_path(__DIR__).'wpcrm-project-display.php');
+    /*
+    *  FILTER: allows array of project type slug to be used a teamplate parts.
+    * Array can be modfified, slug removed or re-ordered to as to get desired template
+    * structure. If emptied, this project content will be filled with its content.
+    */
+    $project_type = apply_filters('wpcrm_cuar_project_templates',$project_type, $post_id);
+    $found_template = false;
+    foreach($project_type as $type){
+      if(apply_filters('wpcrm_cuar_skip_project_type_in_menu', false, $type, $current_user_id)){
+        continue;
+      }
+      //let's buffer any template parts for this project in the theme folder ./wpcrm-cuar/
+      ob_start();
+      if( file_exists( get_stylesheet_directory().'/wpcrm-cuar/project-'.$type->slug.'.php' ) ) {
+        include(get_stylesheet_directory().'/wpcrm-cuar/project-'.$type->slug.'.php');
+      }else{
+        include(plugin_dir_path(__DIR__).'wpcrm-project-display.php');
+      }
+      $page = ob_get_contents();
+      ob_end_clean();
+      $project_include[$post_id][] = $page;
+      //keep the slug for css class
+      $project_class[$post_id][]='project_type_'.$type->slug;
     }
-    $page = ob_get_contents();
-    ob_end_clean();
-    $project_include[$post_id][] = $page;
-    //keep the slug for css class
-    $project_class[$post_id][]='project_type_'.$type->slug;
-  }
 
+  }
+  wp_reset_postdata();
 }
-wp_reset_postdata();
 $page_title ='';
 if(!empty($type_id)){
   $page_title = "All ".$page_term_name;
@@ -208,9 +232,10 @@ foreach($project_titles as $proj_id=>$title) {
           }else{
             include(plugin_dir_path(__DIR__).'cuar-file-display.php');
           }
+          //reset the post data
+          wp_reset_postdata();
         }
-        //reset the query
-        wp_reset_postdata();
+
       }else{
         echo '<p class="project-file-access-error">' . apply_filters('wpcrm_cuar_no_access_private_files_msg', __('Insufficient access to view project files','wpcrm-cusutomer-area')) .'</p>';
       }
@@ -235,9 +260,10 @@ foreach($project_titles as $proj_id=>$title) {
       }else{
         include(plugin_dir_path(__DIR__).'project-tasks-display.php');
       }
+      //reset the query
+      wp_reset_postdata();
     }
-    //reset the query
-    wp_reset_postdata();
+
     echo '</div>';  //close the tab
   }
   if(!empty($extra_tab)){

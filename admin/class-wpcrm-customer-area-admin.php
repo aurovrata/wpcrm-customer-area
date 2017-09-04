@@ -125,28 +125,29 @@ class Wpcrm_Customer_Area_Admin {
         //the copmany has been re-mapped, we need to remove user rights from old company page
         //get the user first
         $user_id = get_post_meta($post_id, '_wpcrm_contact-user_id', true);
+				if(!empty($user_id)){
+	        $args = array(
+	            'meta_key' => 'wpcrm_organisation_id',
+	            'meta_value' => $saved_org_id,
+	            'post_type' => 'cuar_private_page',
+	            'post_status' => 'any',
+	            'posts_per_page' => -1
+	        );
+	        $posts = get_posts($args);
+	        if ($posts){
+	          $cuar_page = $posts[0];
+	          if( function_exists('cuar_addon') ){
+	            debug_msg($cuar_page->ID, "Found private page ");
 
-        $args = array(
-            'meta_key' => 'wpcrm_organisation_id',
-            'meta_value' => $saved_org_id,
-            'post_type' => 'cuar_private_page',
-            'post_status' => 'any',
-            'posts_per_page' => -1
-        );
-        $posts = get_posts($args);
-        if ($posts){
-          $cuar_page = $posts[0];
-          if( function_exists('cuar_addon') ){
-            //debug_msg($cuar_page->ID, "Found private page ");
-            $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
-            $owners = $po_addon->get_post_owners($cuar_page->ID);
-            //debug_msg($owners, "Removing ".$user_id." from Current owners ");
-            $owners['usr'] = array_diff($owners['usr'], array($user_id) );
-            $po_addon->save_post_owners($cuar_page->ID, $owners);
-          }else{
-            debug_msg("Customer Area function 'cuar_addon' not found ");
-          }
-        }
+	            $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
+	            $owners = $po_addon->get_post_owners($cuar_page->ID);
+	            debug_msg($owners, "Removing ".$user_id." from Current owners ");
+	            $owners['usr'] = array_diff($owners['usr'], array($user_id) );
+	            $po_addon->save_post_owners($cuar_page->ID, $owners);
+	          }
+						wp_reset_postdata();
+	        }
+				}
       }
     }
     return $post_data;
@@ -229,7 +230,7 @@ class Wpcrm_Customer_Area_Admin {
         if ($posts){
           $cuar_page = $posts[0];
           if( function_exists('cuar_addon') ){
-            //debug_msg($cuar_page->ID, "Foudn private page ");
+            debug_msg($cuar_page->ID, "Found private page ");
 
             $po_addon = cuar_addon('post-owner'); //this will instantiate the required class
             $owners = $po_addon->get_post_owners($cuar_page->ID);
@@ -237,9 +238,51 @@ class Wpcrm_Customer_Area_Admin {
             if(!in_array($user->ID, $owners['usr'])){
               $owners['usr'][] = $user->ID;
               $po_addon->save_post_owners($cuar_page->ID, $owners);
+							debug_msg($owners, "Added ".$user->ID." to Current owners ");
             }
 
           }
+					wp_reset_postdata(); //organisation search.
+					//search for private files
+					$args = array(
+						'post_type' => 'wpcrm-project',
+						'post_status' => 'publish',
+						'meta_key' => '_wpcrm_project-attach-to-organization',
+						'meta_value' => $org_id
+					);
+					$projects = get_posts($args);
+					if(!empty($projects)){
+						$args = array();
+						foreach($projects as $project){
+							$args[] = $project->ID;
+						}
+						wp_reset_postdata(); //projects
+						$args = array(
+							'post_type' => 'cuar_private_file',
+							'post_status' => 'any',
+							'meta_key' => 'wpcrm-project-id',
+							'meta_value' => $args,
+							'meta_compare' => 'IN'
+						);
+						$files = get_posts($args);
+						if(!empty($files)){
+							if( function_exists('cuar_addon') ){
+								$po_addon = cuar_addon('post-owner'); //this will instantiate the required class
+								foreach($files as $file){
+			            debug_msg($file->ID, "Found private file ");
+			            $owners = $po_addon->get_post_owners($file->ID);
+
+			            if(!in_array($user->ID, $owners['usr'])){
+			              $owners['usr'][] = $user->ID;
+			              $po_addon->save_post_owners($file->ID, $owners);
+										debug_msg($owners, "Added ".$user->ID." to Current owners ");
+			            }
+
+			          }
+							}
+							wp_reset_postdata();
+						}
+					}
         }else{
           $org_post = get_post($org_id);
           //create a new page
@@ -396,6 +439,38 @@ class Wpcrm_Customer_Area_Admin {
       }
     }
   }
+
+  /**
+   * Sends a new project creation notification email to all contacts attached to an Organization
+   * This function hooks the 'added_post_meta' and sends an email to all contacts for a particular organization
+   * @since 1.0.1
+   * @param      int      $meta_id   the meta_id of the postmeta being saved.
+   * @param      int      $post_id   the post_id of the postmeta being saved.
+   * @param      array    $meta_key  the meta_key of the postmeta being saved.
+   * @param      array    $meta_value the meta_value of the postmeta being saved.
+   */
+  public function project_creation_notification($meta_id, $post_id, $meta_key, $meta_value){
+            $post = get_post($post_id);
+
+            if($post->post_type === 'wpcrm-project') {
+                $project_organization = get_post_meta($post_id);
+                if(isset($project_organization['_wpcrm_project-attach-to-organization'])){
+                    $got_posts = get_posts(array(
+                        'meta_key' => '_wpcrm_contact-attach-to-organization',
+                        'meta_value' => $project_organization['_wpcrm_project-attach-to-organization'],
+                        'post_type' => 'wpcrm-contact',
+                        'post_status' => 'publish',
+                        'posts_per_page' => -1
+                    ));
+                    foreach($got_posts as $posted){
+                        $emails[] = get_post_meta($posted->ID, '_wpcrm_contact-email', true);
+                    }
+										debug_msg($emails, 'sending emails');
+                    wp_mail($emails, "New Project Created", "New Project Created");
+                }
+            }
+
+    }
 
   /**
    * Add a user column to WP-CRM contact table
@@ -939,7 +1014,7 @@ class Wpcrm_Customer_Area_Admin {
    * @return     Array    array of columns to display.
   **/
   public function add_organisation_column($columns){
-    $column_title = apply_filters('wpcrm_cuar_organisation_column_title', 'Organization');
+    $column_title = apply_filters('wpcrm_cuar_organisation_column_title', 'Organisation');
     $start = array_splice($columns, 0, 2);
     $columns = array_merge($start, array('organisation'=>$column_title), $columns);
     return $columns;
@@ -1045,13 +1120,15 @@ class Wpcrm_Customer_Area_Admin {
     $org_posts = get_posts($args);
 
     echo '<select id="wpcrm_organisation" name="wpcrm_org">';
-    echo '<option value="0">' . __( 'Show all Organizations', 'wpcrm-customer-area' ) . ' </option>';
-    foreach( $org_posts as $org ) {
-      $select = ($org->ID == $selected) ? ' selected="selected"':'';
-      echo '<option value="'.$org->ID.'"'.$select.'>' . $org->post_title . ' </option>';
-    }
+		if(!empty($org_posts)){
+	    echo '<option value="0">' . __( 'Show all Organizations', 'wpcrm-customer-area' ) . ' </option>';
+	    foreach( $org_posts as $org ) {
+	      $select = ($org->ID == $selected) ? ' selected="selected"':'';
+	      echo '<option value="'.$org->ID.'"'.$select.'>' . $org->post_title . ' </option>';
+	    }
+			wp_reset_postdata();
+		}
     echo '</select>';
-    wp_reset_postdata();
   }
   /**
    * Filter the wpcrm table post per ogranisation
@@ -1101,6 +1178,120 @@ class Wpcrm_Customer_Area_Admin {
     }
     return $query;
   }
+  /**
+   * Add a column to the User Admin Table
+   * Hooked on 'manage_users_columns'
+   * @since 1.0.0
+   * @param      array  $column    Column to be added
+   * @return     array  $column
+   **/
+  function new_modify_user_table($column){
+      $column['organisation'] = 'Organization';
+      return $column;
+  }
+
+  /**
+   * Add a column to the User Admin Table
+   * Hooked on 'manage_users_custom_column'
+   * @since 1.0.0
+   * @param      string $val  Custom column output. Default empty
+   * @param      string $column_name  Column name
+   * @param      int $user_id  ID of the listed user
+   * @return     array  $column
+   **/
+  function add_organisation_to_user_table($val, $column_name, $user_id){
+      switch ($column_name) {
+          case 'organisation' :
+              $got_posts = get_posts(array(
+                  'meta_key' => '_wpcrm_contact-user_id',
+                  'meta_value' => $user_id,
+                  'post_type' => 'wpcrm-contact',
+                  'post_status' => 'any',
+                  'posts_per_page' => -1
+              ));
+
+              $org = 0;
+
+              if(empty($got_posts)){
+                  $org = 'NA';
+              }else{
+                  $details = get_post_custom($got_posts[0]->ID);
+                  $org_id = $details['_wpcrm_contact-attach-to-organization'][0];
+                  $org_post = get_post($org_id);
+                  $org = $org_post->post_title;
+              }
+              return $org;
+              break;
+          default:
+      }
+      return $val;
+  }
+
+  function wpcrm_customer_area__user_table_filtering()
+    {
+        if ( isset( $_GET[ 'organization' ]) ) {
+            $organization = $_GET[ 'organization' ];
+            $organization = !empty( $organization[ 0 ] ) ? $organization[ 0 ] : $organization[ 1 ];
+            $organization = wp_strip_all_tags($organization);
+        } else {
+            $section = -1;
+        }
+        echo ' <select name="organization[]" style="float:none;"><option value="">Organization..</option>';
+
+        $got_posts = get_posts(array(
+            'meta_key' => '_wpcrm_contact-attach-to-organization',
+            'post_type' => 'wpcrm-contact',
+            'post_status' => 'any',
+            'posts_per_page' => -1
+        ));
+
+        foreach($got_posts as $posted){
+            $organization = get_post_custom($posted->ID);
+            $org_id[] = $organization['_wpcrm_contact-attach-to-organization'][0];
+        }
+
+        foreach(array_unique($org_id) as $uniq_org_id){
+            $org_post = get_post($uniq_org_id);
+            $org = $org_post->post_title;
+            echo '<option value="' . $uniq_org_id . '">' . $org . '</option>';
+        }
+
+        echo '</select>';
+
+        echo '<input type="submit" class="button" value="Filter">';
+
+    }
+
+    function wpcrm_customer_area__user_by_org($query)
+    {
+        global $pagenow;
+
+        if ( is_admin() &&
+            'users.php' == $pagenow &&
+            isset( $_GET[ 'organization' ] ) &&
+            is_array( $_GET[ 'organization' ] )
+        ) {
+            $organization = $_GET[ 'organization' ];
+            $organization = !empty( $organization[ 0 ] ) ? $organization[ 0 ] : $organization[ 1 ];
+
+            $user_posts = get_posts(array(
+                'meta_key' => '_wpcrm_contact-attach-to-organization',
+                'meta_value' => $organization,
+                'post_type' => 'wpcrm-contact',
+                'post_status' => 'any',
+                'posts_per_page' => -1
+            ));
+
+            foreach($user_posts as $user_post){
+                $user_post_ids = get_post_custom($user_post->ID);
+                $user_ids[] = $user_post_ids['_wpcrm_contact-user_id'];
+            }
+
+            $query_user_ids = call_user_func_array('array_merge', $user_ids);
+
+            $query->query_vars['include'] = $query_user_ids;
+        }
+    }
 	/**
 	* Funciton to modify the dashboard comments link to the taks comment.
 	* Hooked on 'comment_row_actions'

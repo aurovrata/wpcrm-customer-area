@@ -1,6 +1,8 @@
 <?php
-/** Template version: 3.0.0
+/** Template version: 3.1.0
  *
+ * -= 3.1.0 =- updated by Vrata 
+ * - Improve sidebar javascript UI - added some selectors
  * -= 3.0.0 =-
  * - Improve UI for new master-skin
  *
