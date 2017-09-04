@@ -38,7 +38,7 @@ $args = array(
  Else, if it was not skipped, we need to first find if a project-type was passed in the url slug
  oe else display the first projects of type of the first menu item
 */
-if(!apply_filters('wpcrm_cuar_skip_project_type_sub_menus', false,  $current_user_id)){
+if( !apply_filters('wpcrm_cuar_skip_project_type_sub_menus', false,  $current_user_id)){
   //do we have a type in the url ?
   $type_id = '';
   if(isset($_GET['type'])) {
@@ -104,9 +104,21 @@ if(!empty($project_posts)){
 
   	$project_titles[$post_id] = $post->post_title;
 
-    $project_type = wp_get_post_terms( $post_id, 'project-type' );
-    if(is_wp_error($project_type)){
-      debug_msg($project_type, "Error while loading Project type terms for project ID ".$post_id.", ");
+
+  $project_type = wp_get_post_terms( $post_id, 'project-type' );
+  if(is_wp_error($project_type)){
+    debug_msg($project_type, "Error while loading Project type terms for project ID ".$post_id.", ");
+    continue;
+  }
+  /*
+  *  FILTER: allows array of project type slug to be used as teamplate parts.
+  * Array can be modfified, slug removed or re-ordered to as to get desired template
+  * structure. If emptied, this project content will be filled with its content.
+  */
+  $project_type = apply_filters('wpcrm_cuar_project_templates',$project_type, $post_id);
+  $found_template = false;
+  foreach($project_type as $type){
+    if(apply_filters('wpcrm_cuar_skip_project_type_in_menu', false, $type, $current_user_id)){
       continue;
     }
     /*

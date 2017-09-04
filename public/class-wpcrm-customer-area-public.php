@@ -185,7 +185,7 @@ class Wpcrm_Customer_Area_Public {
     if($disable) add_theme_support( 'customer-area.stylesheet' );
   }
   /**
-   * Fundtion to add Cusomter Area template path
+   * Function to add Cusomter Area template path
    * this function hooks the 'cuar/ui/template-directories'
    * @since 1.0.0
    * @param      Array    $possible_paths    an array of template paths .
