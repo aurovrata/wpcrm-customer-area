@@ -72,6 +72,7 @@ class Wpcrm_Customer_Area_Public {
     wp_enqueue_style('jquery-ui-smoothness', $url, array() ,$ui->ver , 'all');
 
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wpcrm-customer-area-public.css', array(), $this->version, 'all' );
+		wp_enqueue_style( 'scrolltabs-css', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/css/scrolltabs.css', array(), $this->version, 'all' );
 
 	}
 
@@ -82,19 +83,9 @@ class Wpcrm_Customer_Area_Public {
 	 */
 	public function enqueue_scripts() {
 
-		/**
-		 * This function is provided for demonstration purposes only.
-		 *
-		 * An instance of this class should be passed to the run() function
-		 * defined in Wpcrm_Customer_Area_Loader as all of the hooks are defined
-		 * in that particular class.
-		 *
-		 * The Wpcrm_Customer_Area_Loader will then create the relationship
-		 * between the defined hooks and the functions defined in this
-		 * class.
-		 */
-
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-customer-area-public.js', array( 'jquery','jquery-ui-tabs','jquery-ui-accordion' ), $this->version, false );
+		wp_enqueue_script( 'scrolltabs-js', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/js/jquery.mousewheel.js', array( 'jquery'), $this->version, false );
+		wp_enqueue_script( 'mousewheel-js', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/js/jquery.scrolltabs.js', array( 'jquery', 'mousewheel-js'), $this->version, false );
 
 	}
   /**
