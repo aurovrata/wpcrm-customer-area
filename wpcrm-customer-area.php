@@ -15,7 +15,7 @@
  * @wordpress-plugin
  * Plugin Name:       WP-CRM Customer Area Extension
  * Plugin URI:        http://wordpress.syllogic.in
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       This plugin uses WP Customer Area tp craete a secure front-end to the WP CRM System plugin
  * Version:           1.0.0
  * Author:            Aurovrata V.
  * Author URI:        http://syllogic.in
@@ -32,6 +32,7 @@ if ( ! defined( 'WPINC' ) ) {
 if(WP_DEBUG){
   error_reporting(E_ALL);
 }
+define( 'WPCRM_CUSTOMER_AREA_VERSION' , "1.0.0" );
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-wpcrm-customer-area-activator.php
@@ -70,7 +71,7 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-wpcrm-customer-area.php';
  */
 function run_wpcrm_customer_area() {
 
-	$plugin = new Wpcrm_Customer_Area();
+	$plugin = new Wpcrm_Customer_Area(WPCRM_CUSTOMER_AREA_VERSION);
 	$plugin->run();
 }
 run_wpcrm_customer_area();

@@ -66,10 +66,10 @@ class Wpcrm_Customer_Area {
 	 *
 	 * @since    1.0.0
 	 */
-	public function __construct() {
+	public function __construct($version) {
 
 		$this->plugin_name = 'wpcrm-customer-area';
-		$this->version = '1.0.0';
+		$this->version = $version;
 
 		$this->load_dependencies();
 		$this->set_locale();
