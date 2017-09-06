@@ -84,8 +84,8 @@ class Wpcrm_Customer_Area_Public {
 	public function enqueue_scripts() {
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcrm-customer-area-public.js', array( 'jquery','jquery-ui-tabs','jquery-ui-accordion' ), $this->version, false );
-		wp_enqueue_script( 'scrolltabs-js', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/js/jquery.mousewheel.js', array( 'jquery'), $this->version, false );
-		wp_enqueue_script( 'mousewheel-js', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/js/jquery.scrolltabs.js', array( 'jquery', 'mousewheel-js'), $this->version, false );
+		wp_enqueue_script( 'mousewheel-js', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/js/jquery.mousewheel.js', array( 'jquery'), $this->version, true );
+		wp_enqueue_script( 'scrolltabs-js', plugin_dir_url( __DIR__ ) . 'assets/scrolltabs/js/jquery.scrolltabs.js', array( 'jquery', 'mousewheel-js'), $this->version, true );
 
 	}
   /**
@@ -98,6 +98,7 @@ class Wpcrm_Customer_Area_Public {
   public function start_el($item_output, $item) {
     // if it isn't our custom object
     //debug_msg($item, "menu object, ");
+
     switch ($item->object){
 
       case ($item->object == 'cuar_nav'):

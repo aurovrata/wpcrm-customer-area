@@ -14,3 +14,46 @@
 div#tabs.wpcrm-project-tabs li {
     font-size: 15px;
 }
+.display-none{
+  display: none;
+}
+#tabs .display-none:first-child{
+  display: block;
+}
+#ul-tabs li {
+    max-width: 140px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 5px;
+}
+#ul-tabs li.tab_selected {
+    max-width: none;
+    background: #ededed;
+}
+
+#ul-tabs .scroll_tab_right_button::before,
+#ul-tabs .scroll_tab_left_button::before {
+    line-height: 37px;
+}
+#tabs.extra-project ul.scroll_tabs_container {
+    display: inline-block;
+    width: calc(100% - 40px);
+}
+#tabs .extra-project-tab {
+    display: inline-block;
+    vertical-align: top;
+    background: #CCCCCC;
+    margin-left: -3px;
+    border: solid 1px #999999;
+    max-height: 42px;
+    border-radius: 5px;
+}
+#tabs .extra-project-tab a {
+    text-decoration: none;
+    border-bottom: none;
+    padding: 0 10px;
+    display: block;
+    text-align: center;
+    max-height: 42px;
+    position: relative;
+    margin-top: -2px;
+}

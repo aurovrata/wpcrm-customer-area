@@ -25,6 +25,14 @@ $org_id = get_post_meta($post->ID,'wpcrm_organisation_id',true);
 $current_user_id = get_current_user_id();
 $type_id = '';  //the project-type ID requested for display on the page
 $page_term_name=''; //the name of the project-type term
+/**
+* Filter to change/add an extra tab and its label at the end of the of scrollable tabs for user to add more tabs for example.  Default is empty which will print to extra tab.  supplying an extra tab title requires also to filter for the extra panel 'wpcrm_cuar_add_one_more_tab_content'
+* @param $tab_label  tab label, default empty.
+* @param $current_user_id  logged in user id.
+* @param $type_id  the wpcrm project type being displayed.
+* @since 1.0
+*/
+$extra_tab = apply_filters('wpcrm_cuar_add_one_more_tab_title','',$current_user_id, $type_id);
 
 $args = array(
   'post_type'      => 'wpcrm-project',
@@ -104,21 +112,9 @@ if(!empty($project_posts)){
 
   	$project_titles[$post_id] = $post->post_title;
 
-
-  $project_type = wp_get_post_terms( $post_id, 'project-type' );
-  if(is_wp_error($project_type)){
-    debug_msg($project_type, "Error while loading Project type terms for project ID ".$post_id.", ");
-    continue;
-  }
-  /*
-  *  FILTER: allows array of project type slug to be used as teamplate parts.
-  * Array can be modfified, slug removed or re-ordered to as to get desired template
-  * structure. If emptied, this project content will be filled with its content.
-  */
-  $project_type = apply_filters('wpcrm_cuar_project_templates',$project_type, $post_id);
-  $found_template = false;
-  foreach($project_type as $type){
-    if(apply_filters('wpcrm_cuar_skip_project_type_in_menu', false, $type, $current_user_id)){
+    $project_type = wp_get_post_terms( $post_id, 'project-type' );
+    if(is_wp_error($project_type)){
+      debug_msg($project_type, "Error while loading Project type terms for project ID ".$post_id.", ");
       continue;
     }
     /*
@@ -145,7 +141,6 @@ if(!empty($project_posts)){
       //keep the slug for css class
       $project_class[$post_id][]='project_type_'.$type->slug;
     }
-
   }
   wp_reset_postdata();
 }
@@ -158,47 +153,48 @@ if(!empty($type_id)){
 $page_title = apply_filters('wpcrm_cuar_page_title',$page_title, $type_id, $current_user_id);
 ?>
 <h2 id="page-title"><?php echo $page_title?></h2>
-<div id="tabs" class="wpcrm-project-tabs">
+<div id="tabs" class="wpcrm-project-tabs<?= empty($extra_tab)?'':' extra-project'?>">
 <?php if(!empty($project_titles)){ ?>
-  <ul>
+  <ul id="ul-tabs" class="scroll_tabs_theme_light">
 <?php
-$idx=1;
-foreach($project_titles as $proj_id=>$title) {
-  $class = '';
-  if(!empty($project_class[$proj_id])) $class = implode(' ',$project_class[$proj_id])
-  ?>
-    <li class="<?php echo $class;?>">
-      <a href="#tabs-<?php echo ($idx++);?>">
-        <?php echo $title;?>
-      </a>
-    </li>
-  <?php
-}
-$extra_tab = apply_filters('wpcrm_cuar_add_one_more_tab_title','',$current_user_id, $type_id);
-if(!empty($extra_tab)){
-  ?>
-  <li class="extra-project-tab <?php echo empty($type_id) ? '' : $class;?>">
-    <a href="#tabs-<?php echo ($idx++);?>">
-    <?php echo $extra_tab;?>
-    </a>
-  </li>
-  <?php
-}
-?>
-</ul> <!--  end tabs-->
-<?php
-$idx=1;
-foreach($project_titles as $proj_id=>$title) {
-  echo '  <div id="tabs-'. ($idx++) .'">';
-  foreach($project_include[$proj_id] as $content){
-    echo $content;
+  $idx=1;
+  foreach($project_titles as $proj_id=>$title) {
+    $class = '';
+    if(!empty($project_class[$proj_id])) $class = implode(' ',$project_class[$proj_id]);
+    if(1==$idx) $class .=' tab_selected';
+    // debug_msg($class);
+    ?>
+      <li class="<?= $class;?>" data-panel="#tabs-<?= ($idx++);?>">
+          <?= $title;?>
+      </li>
+    <?php
   }
-  //
-  //PROJECT PRIVATE FILES load project private files if any
-  //
-  if(function_exists('cuar_addon') ){
-    $cpf_addon = cuar_addon('customer-private-files'); //this will instantiate the required class
-    //check if the logged in user has access to this
+
+?>
+  </ul> <!--  end tabs-->
+<?php
+  if(!empty($extra_tab)){
+    ?>
+    <div class="extra-project-tab <?= empty($type_id) ? '' : $class;?>" data-panel="#tabs-<?= ($idx++);?>">
+      <a title="Request extra <?=$page_term_name?>" href="javascript:void();"><?= $extra_tab;?></a>
+    </div>
+    <?php
+  }
+  ?>
+<div id="panels">
+  <?php
+  $idx=1;
+  foreach($project_titles as $proj_id=>$title) {
+    echo '  <div id="tabs-'. ($idx++) .'" class="display-none">';
+    foreach($project_include[$proj_id] as $content){
+      echo $content;
+    }
+    //
+    //PROJECT PRIVATE FILES load project private files if any
+    //
+    if(function_exists('cuar_addon') ){
+      $cpf_addon = cuar_addon('customer-private-files'); //this will instantiate the required class
+      //check if the logged in user has access to this
       if ( $cpf_addon->is_accessible_to_current_user()){
         //to check what this user owns, we need to call the post-owner class
         $po_addon = cuar_addon('post-owner');
@@ -268,11 +264,14 @@ foreach($project_titles as $proj_id=>$title) {
   }
   if(!empty($extra_tab)){
     ?>
-    <div id="tabs-<?php echo ($idx++)?>">
+    <div id="tabs-<?php echo ($idx++)?>" class="display-none">
       <?php echo apply_filters('wpcrm_cuar_add_one_more_tab_content','',$current_user_id, $type_id);?>
     </div>
     <?php
   }
+   ?>
+ </div> <!-- end #panels -->
+   <?php
 }else{ // no projects found
     if( file_exists( get_stylesheet_directory().'/wpcrm-cuar/project-no-content.php' ) ) {
       include(get_stylesheet_directory().'/wpcrm-cuar/project-no-content.php');
