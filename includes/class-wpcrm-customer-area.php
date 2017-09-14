@@ -68,7 +68,7 @@ class Wpcrm_Customer_Area {
 	 */
 	public function __construct($version) {
 
-		$this->plugin_name = 'wpcrm-customer-area';
+		$this->plugin_name = 'secure-wpcrm-frontend';
 		$this->version = $version;
 
 		$this->load_dependencies();

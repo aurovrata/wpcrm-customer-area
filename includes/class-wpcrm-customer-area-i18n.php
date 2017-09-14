@@ -35,7 +35,7 @@ class Wpcrm_Customer_Area_i18n {
 	public function load_plugin_textdomain() {
 
 		load_plugin_textdomain(
-			'wpcrm-customer-area',
+			'secure-wpcrm-frontend',
 			false,
 			dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
 		);

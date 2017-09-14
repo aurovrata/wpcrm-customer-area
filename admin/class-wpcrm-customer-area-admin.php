@@ -1121,7 +1121,7 @@ class Wpcrm_Customer_Area_Admin {
 
     echo '<select id="wpcrm_organisation" name="wpcrm_org">';
 		if(!empty($org_posts)){
-	    echo '<option value="0">' . __( 'Show all Organizations', 'wpcrm-customer-area' ) . ' </option>';
+	    echo '<option value="0">' . __( 'Show all Organisations', 'secure-wpcrm-frontend' ) . ' </option>';
 	    foreach( $org_posts as $org ) {
 	      $select = ($org->ID == $selected) ? ' selected="selected"':'';
 	      echo '<option value="'.$org->ID.'"'.$select.'>' . $org->post_title . ' </option>';
