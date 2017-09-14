@@ -1,4 +1,4 @@
-=== Plugin Name ===
+=== Secure Frontend for WP-CRM System module ===
 Contributors: (this should be a list of wordpress.org userid's)
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=DVAJJLS8548QY
 Tags: comments, spam
