@@ -3,6 +3,7 @@ Contributors: (this should be a list of wordpress.org userid's)
 Donate link: http://syllogic.in
 Tags: comments, spam
 Requires at least: 4.7
+Requires PHP: 5.6
 Tested up to: 4.8.3
 Stable tag: trunk
 License: GPLv2 or later
